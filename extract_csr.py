@@ -9,7 +9,7 @@ from deepsoil_output_plot import deepsoil_plotter
 from kayen import liquefaction_triggering_Kayen
 
 def extract_csr():
-    directory = r"C:\Users\FEli\OneDrive - Golder Associates\Projects\2020\PRDP\github_backup\Output\\"
+    directory = r"C:\Golder-Projects\2020-PasayReclamation\Work Station\Output\\"
     dir_list = os.listdir(directory)
     for cur_dir in dir_list:
         motions = os.listdir(directory + cur_dir + '/profile_0/')
@@ -38,7 +38,7 @@ def decorate_plot(ax):
     ax.invert_yaxis()
 
 def print_profiles():
-    directory = r"C:\Users\FEli\OneDrive - Golder Associates\Projects\2020\PRDP\github_backup\Output\\"
+    directory = r"C:\Golder-Projects\2020-PasayReclamation\Work Station\Output\\"
     dir_list = os.listdir(directory)
     for cur_dir in dir_list:
         motions = os.listdir(directory + cur_dir + '/profile_0/')
@@ -95,7 +95,7 @@ def print_profiles():
 
 def plot_profiles_fs():
 
-    directory = r"C:\Users\FEli\OneDrive - Golder Associates\Projects\2020\PRDP\github_backup\Output\\"
+    directory = r"C:\Golder-Projects\2020-PasayReclamation\Work Station\Output\\"
     
     profiles = [
         # 'Bhb-17-Simplified',
@@ -255,7 +255,7 @@ def plot_profiles_fs():
 def plot_profiles_fs_excel():
 
     import openpyxl as xl
-    directory = r"C:\Users\FEli\OneDrive - Golder Associates\Projects\2020\PRDP\github_backup\Output\\"
+    directory = r"C:\Golder-Projects\2020-PasayReclamation\Work Station\Output\\"
     
     profiles = [
         # 'Bhb-17-Simplified',
@@ -290,7 +290,7 @@ def plot_profiles_fs_excel():
         ax_fs  = fig.add_subplot(1,6,5)
         ax_pl  = fig.add_subplot(1,6,6)
 		
-        wb = xl.load_workbook(r"C:\Users\FEli\OneDrive - Golder Associates\Projects\2020\PRDP\github_backup\%s.xlsx"%profile, data_only=True)
+        wb = xl.load_workbook(r"C:\Golder-Projects\2020-PasayReclamation\Work Station\%s.xlsx"%profile, data_only=True)
         sh = wb["Deepsoil-Calibrated"]
         sublayer = 1
         Vs = []
