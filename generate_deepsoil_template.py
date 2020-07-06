@@ -93,7 +93,9 @@ def read_excel_file(filename):
             cur_layer['damping'] = float(sh[f"R{numLayers+2}"].value)
             cur_layer['max_frequency'] = float(sh[f"S{numLayers+2}"].value)
             cur_layer['descretize'] = str(sh[f"T{numLayers+2}"].value)
-
+            
+            cur_layer['finecontent'] = float(sh[f"U{numLayers+2}"].value)
+            
             layers.append(cur_layer)
             numLayers += 1
     
@@ -221,7 +223,7 @@ def generate_deepsoil_layering(xl_fn, filename):
                 cur_layer['Tot_Stress'] = tot_stress
                 cur_layer['Eff_Stress'] = eff_stress
                 cur_layer['PWP'] = pwp
-
+                cur_layer['finecontent'] = xl_layer['finecontent'] 
                 ds_layers.append(cur_layer)
                 depth += sublayer_thickness / 2.0
                 tot_stress += xl_layer['unit_weight'] * sublayer_thickness / 2.0
@@ -286,7 +288,8 @@ def generate_deepsoil_layering(xl_fn, filename):
             cur_layer['Tot_Stress'] = tot_stress
             cur_layer['Eff_Stress'] = eff_stress
             cur_layer['PWP'] = pwp
-
+            cur_layer['finecontent'] = xl_layer['finecontent'] 
+			
             ds_layers.append(cur_layer)
             depth += xl_layer['thickness'] / 2.0
             tot_stress += xl_layer['unit_weight'] * sublayer_thickness / 2.0
@@ -318,7 +321,7 @@ def write_deepsoil_excel(ds_layers, xl_fn):
     sh['R1'].value = 'PWP'
     sh['S1'].value = 'Effective Stress'
     sh['T1'].value = 'Gmax'
-
+    sh['U1'].value = 'Fine Content'
     row_num = 2
     for layer in ds_layers:
         sh[f'A{row_num}'].value = row_num - 1
@@ -341,7 +344,7 @@ def write_deepsoil_excel(ds_layers, xl_fn):
         sh[f'R{row_num}'].value = layer['PWP']
         sh[f'S{row_num}'].value = layer['Eff_Stress']
         sh[f'T{row_num}'].value = layer['Gmax']
-
+        sh[f'U{row_num}'].value = layer['finecontent']
         row_num += 1
     wb.save(xl_fn)
 
@@ -401,5 +404,5 @@ def parallel_generate():
 
 
 if __name__ == "__main__":
-    generate_one_profile('Bhr-01-Simplified_new')
+    generate_one_profile('Bhd-01-Simplified_new')
     # parallel_generate()
