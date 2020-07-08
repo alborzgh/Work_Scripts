@@ -138,7 +138,7 @@ def plot_profiles_fs():
             pgd = ds.get_relPGD_profile().squeeze()
             pga = ds.get_totPGA_profile().squeeze()
             gmx = ds.get_max_strain().squeeze()
-            csr = ds.get_max_stress_ratio().squeeze()
+            csr = ds.get_max_stress_ratio().squeeze()*0.65
             Vs = []
             unit_weight = []
             in_depth = []
@@ -177,7 +177,7 @@ def plot_profiles_fs():
             eff_stress = np.array(eff_stress)
             Vs = np.array(Vs)
                     
-            fs, pl, _, _ = liquefaction_triggering_Kayen(depth, Vs, csr=0.65*csr, sig_tot=tot_stress, sig_eff=eff_stress, Mw=7.7, fc=0.0*Vs)
+            fs, pl, _, _ = liquefaction_triggering_Kayen(depth, Vs, csr=csr, sig_tot=tot_stress, sig_eff=eff_stress, Mw=7.7, fc=0.0*Vs)
             fs_simpl, pl_simpl, csr_simpl, crr_simpl = liquefaction_triggering_Kayen(depth, Vs, sig_tot=tot_stress, sig_eff=eff_stress, pga=0.24, Mw=7.7, fc=0.0*Vs)
 
             if motion_ii == 0:
@@ -301,6 +301,7 @@ def plot_profiles_fs_excel():
         eff_stress = []
         fc = []
         cur_depth = 0
+		soil = []
         while True:
 
             if sh[f'A{sublayer + 1}'].value == None:
@@ -315,7 +316,8 @@ def plot_profiles_fs_excel():
             eff_stress.append(float(sh[f'S{sublayer + 1}'].value))
             fc.append(float(sh[f'U{sublayer+1}'].value))
             Vs.append(float(sh[f'F{sublayer + 1}'].value))
-            
+            soil.append(str(sh[f'B{sublayer+1}'].value))
+			
             cur_depth = cur_depth+float(sh[f'C{sublayer + 1}'].value)/2.0
             sublayer +=1
             
@@ -333,9 +335,9 @@ def plot_profiles_fs_excel():
             pgd = ds.get_relPGD_profile().squeeze()
             pga = ds.get_totPGA_profile().squeeze()
             gmx = ds.get_max_strain().squeeze()
-            csr = ds.get_max_stress_ratio().squeeze()
+            csr = ds.get_max_stress_ratio().squeeze()*0.65
                     
-            fs, pl, _, _ = liquefaction_triggering_Kayen(depth, Vs, csr=0.65*csr, sig_tot=tot_stress, sig_eff=eff_stress, Mw=7.7, fc=fc)
+            fs, pl, _, _ = liquefaction_triggering_Kayen(depth, Vs, csr=csr, sig_tot=tot_stress, sig_eff=eff_stress, Mw=7.7, fc=fc)
             fs_simpl, pl_simpl, csr_simpl, crr_simpl = liquefaction_triggering_Kayen(depth, Vs, sig_tot=tot_stress, sig_eff=eff_stress, pga=0.24, Mw=7.7, fc=fc)
 
             if motion_ii == 0:
@@ -378,7 +380,8 @@ def plot_profiles_fs_excel():
         ax_fs.plot(fs_simpl_avg, depth,'b-', lw=2.0)
         ax_pl.plot(pl_avg, depth,'k-', lw=2.0)
         ax_pl.plot(pl_simpl_avg, depth,'b-', lw=2.0)
-
+		ax_vs.plot(Vs, depth, 'k-',lw=2.0)
+		
         decorate_plot(ax_pgd)
         ax_pgd.set_xlabel("PGD (m)")
         ax_pgd.set_ylabel("Depth (m)")
@@ -396,7 +399,25 @@ def plot_profiles_fs_excel():
         ax_fs.axvline(x=1.3, color='r', linestyle='--')
         decorate_plot(ax_pl)
         ax_pl.set_xlabel("PL")
-
+		
+		decorate_plot(ax_vs)
+        ax_vs.set_xlabel("Vs")
+        
+        Vs_test = []
+        ii = 0
+		### vs profiles from the 2018 study by JD
+        for idepth in depth:
+            if(soil[ii].startswith('Compacted')):
+                Vs_test.append(0.018*idepth**3.0 - 0.89*idepth**2.0 + 16.2*idepth + 104.0)
+            elif(soil[ii].startswith('Stiff')):
+                Vs_test.append(300)
+            elif(soil[ii].startswith('Soft')):    
+                Vs_test.append(1.5*idepth + 117.5)
+            else:
+                Vs_test.append(0.0)
+            ii+=1
+        ax_vs.plot(Vs_test, depth, 'b-',lw=2.0)
+		
         lines = [
                 matplotlib.lines.Line2D([],[],color='k',linestyle='-', lw=2.0, label='Site-Specific'),
                 matplotlib.lines.Line2D([],[],color='b',linestyle='-', lw=2.0, label='Simplified'),
