@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import openpyxl as xl
 import os
 import xml.etree.ElementTree as et
+
+from calibrateGQH import calibrateGQH_Darendeli_LS, calibrateGQH_Menq_LS, calibrateGQH_VuceticDobry_LS, calibrateGQH_Zhang2005_LS
 from os_utils import ensure_dir
 from xml_indent import indent
 from zipfile import ZipFile
@@ -349,7 +351,7 @@ def generate_parameter_study(filename, out_dir = 'parameter_study'):
 
 
 
-def generate_random_velocities(filename, num_cases=40, randomize_layers=[1], out_dir='random_study'):
+def generate_random_velocities(filename, num_cases=40, randomize_layers=[1], calibrate_layers=[], out_dir='random_study'):
     
     ensure_dir(out_dir)
     wb = xl.load_workbook(filename, data_only=True)
@@ -366,6 +368,7 @@ def generate_random_velocities(filename, num_cases=40, randomize_layers=[1], out
     thickness_list = []
     name_list = []
     Vs_list = []
+    ref_curve_list = []
     layer_bottom = 0.0
     row_num = 2
     while not sh[f'A{row_num}'].value is None:
@@ -381,6 +384,7 @@ def generate_random_velocities(filename, num_cases=40, randomize_layers=[1], out
        thickness_list.append(sh[f'C{row_num}'].value)
        name_list.append(sh[f'B{row_num}'].value)
        Vs_list.append(sh[f'M{row_num}'].value)
+       ref_curve_list.append(str(sh[f'Q{row_num}'].value))
        row_num += 1
 
     sh = wb['Info']
@@ -582,13 +586,32 @@ def generate_random_velocities(filename, num_cases=40, randomize_layers=[1], out
             f.write(f"[WATER_TABLE]:[{int(water_table)}]\n")
 
             for layer_ii, layer in enumerate(elements):
+                cur_main_layer = np.argmin(np.array(layers_bottom) < layer['bottom']) + 1 
+                t1,t2,t3,t4,t5,p1,p2,p3,D = layer['t1'],layer['t2'],layer['t3'],layer['t4'],layer['t5'],layer['p1'],layer['p2'],layer['p3'],layer['D']
+                Vs, Gmax = layer['Vs'], layer['Gmax']
                 if layer_ii in randomize_elements:
-                    layer['Vs'] = np.exp(np.log(layer['Vs']) + 0.10*norm_dist[layer_ii, analysis_ii])
-                    Vs_to_write[layer_ii, analysis_ii+1] = layer['Vs']
+                    Vs = np.exp(np.log(layer['Vs']) + 0.10*norm_dist[layer_ii, analysis_ii])
+                    Gmax = layer['unit_weight'] / 9.81 * Vs ** 2.0
+                    Vs_to_write[layer_ii, analysis_ii+1] = Vs
+                if cur_main_layer in calibrate_layers:
+                    p = (1+2.0*Ko_list[cur_main_layer-1])/3.0 * layer['Eff_Stress']
+                    initial_guess = (layer['t1'],layer['t2'],layer['t3'],layer['t4'],layer['t5'],layer['p1'],layer['p2'],layer['p3'])
+                    if ref_curve_list[cur_main_layer-1] == 'Darendeli':
+                        t1,t2,t3,t4,t5,p1,p2,p3,D = \
+                            calibrateGQH_Darendeli_LS(p, pi_list[cur_main_layer-1], ocr_list[cur_main_layer-1], layer['strength'], layer['Gmax'], Patm=101.3, initial_guess=initial_guess)
+                    elif ref_curve_list[cur_main_layer-1] == 'Zhang2005':
+                         t1,t2,t3,t4,t5,p1,p2,p3,D = \
+                            calibrateGQH_Zhang2005_LS(p, pi_list[cur_main_layer-1], layer['strength'], layer['Gmax'], Patm=101.3, initial_guess=initial_guess)
+                    # elif ref_curve_list[cur_main_layer-1] == 'Menq':
+                    #     t1, t2, t3, t4, t5, p1, p2, p3, D = calibrateGQH_Menq_LS(p, xl_layer['Cu'], xl_layer['D50'], strength, Gmax, Patm=101.3)
+                    # elif ref_curve_list[cur_main_layer-1] == 'VuceticDobry':
+                    #     t1, t2, t3, t4, t5, p1, p2, p3, D = calibrateGQH_VuceticDobry_LS(xl_layer['PI'], strength, Gmax)
+                    else:
+                        raise('Modulus Reduction curve ' +  ref_curve_list[cur_main_layer-1] + ' not implemented.')
                 f.write(f"[LAYER]:[{layer_ii+1}]\n")
-                f.write(f"\t[THICKNESS]:[{layer['thickness']}] [WEIGHT]:[{layer['unit_weight']}] [SHEAR]:[{layer['Vs']}] [SS_DAMP]:[{layer['D']}]\n")
-                f.write(f"\t[MODEL]:[GQ] [STRENGTH]:[{layer['strength']}] [THETA1]:[{layer['t1']:.5f}] [THETA2]:[{layer['t2']:.5f}] [THETA3]:[{layer['t3']:.5f}] [THETA4]:[{layer['t4']:.5f}] [THETA5]:[{layer['t5']:.5f}] [A]:[1]\n")
-                f.write(f"\t[MRDF]:[UIUC] [P1]:[{layer['p1']:.5f}] [P2]:[{layer['p2']:.5f}] [P3]:[{layer['p3']:.5f}]\n")
+                f.write(f"\t[THICKNESS]:[{layer['thickness']}] [WEIGHT]:[{layer['unit_weight']}] [SHEAR]:[{Vs}] [SS_DAMP]:[{D}]\n")
+                f.write(f"\t[MODEL]:[GQ] [STRENGTH]:[{layer['strength']}] [THETA1]:[{t1:.5f}] [THETA2]:[{t2:.5f}] [THETA3]:[{t3:.5f}] [THETA4]:[{t4:.5f}] [THETA5]:[{t5:.5f}] [A]:[1]\n")
+                f.write(f"\t[MRDF]:[UIUC] [P1]:[{p1:.5f}] [P2]:[{p2:.5f}] [P3]:[{p3:.5f}]\n")
                 f.write(f"\t[OUTPUT]:[TRUE]\n")
                 
             f.write("[LAYER]:[TOP_OF_ROCK]\n")
@@ -625,7 +648,8 @@ def generate_random_velocities(filename, num_cases=40, randomize_layers=[1], out
 
 def main_parameter_study():
     # generate_parameter_study('Bhr-01-Simplified_new.xlsx', out_dir='Bhr-01_parameter_study_temp')
-    generate_random_velocities('Bhr-01-Simplified_new.xlsx', 40, out_dir='Bhr-01_parameter_study_temp')
+    # generate_random_velocities('Bhr-01-Simplified_new.xlsx', 40, calibrate_layers=[], out_dir='Bhr-01_parameter_study_temp')
+    generate_random_velocities('Bhr-01-Simplified_new.xlsx', 40, calibrate_layers=[], out_dir='Bhr-01_parameter_study_temp2')
 
 
 if __name__ == "__main__":
