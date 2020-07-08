@@ -149,7 +149,7 @@ def generate_deepsoil_layering(xl_fn, filename):
                 num_sublayers = 1
                 while True:
                     depth_test = depth + xl_layer['thickness'] / num_sublayers
-                    Vs_test = 0.018*depth_test**3.0 - 0.89*depth_test**2.0 + 6.2*depth_test + 104.0
+                    Vs_test = 0.018*depth_test**3.0 - 0.89*depth_test**2.0 + 16.2*depth_test + 104.0
                     if Vs_test / (4 * xl_layer['thickness'] / num_sublayers) > xl_layer['max_frequency']:
                         break
                     else:
