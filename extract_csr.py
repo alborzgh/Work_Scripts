@@ -283,12 +283,13 @@ def plot_profiles_fs_excel():
     for profile in profiles:
         depth = np.zeros(0)
         fig = plt.figure(figsize=(16,9), dpi=200)
-        ax_pgd = fig.add_subplot(1,6,1)
-        ax_pga = fig.add_subplot(1,6,2)
-        ax_gmx = fig.add_subplot(1,6,3)
-        ax_csr = fig.add_subplot(1,6,4)
-        ax_fs  = fig.add_subplot(1,6,5)
-        ax_pl  = fig.add_subplot(1,6,6)
+        ax_pgd = fig.add_subplot(1,7,1)
+        ax_pga = fig.add_subplot(1,7,2)
+        ax_gmx = fig.add_subplot(1,7,3)
+        ax_csr = fig.add_subplot(1,7,4)
+        ax_fs  = fig.add_subplot(1,7,5)
+        ax_pl  = fig.add_subplot(1,7,6)
+        ax_vs  = fig.add_subplot(1,7,7)
 		
         wb = xl.load_workbook(r"C:\Golder-Projects\2020-PasayReclamation\Work Station\%s.xlsx"%profile, data_only=True)
         sh = wb["Deepsoil-Calibrated"]
@@ -301,7 +302,7 @@ def plot_profiles_fs_excel():
         eff_stress = []
         fc = []
         cur_depth = 0
-		soil = []
+        soil = []
         while True:
 
             if sh[f'A{sublayer + 1}'].value == None:
@@ -380,7 +381,7 @@ def plot_profiles_fs_excel():
         ax_fs.plot(fs_simpl_avg, depth,'b-', lw=2.0)
         ax_pl.plot(pl_avg, depth,'k-', lw=2.0)
         ax_pl.plot(pl_simpl_avg, depth,'b-', lw=2.0)
-		ax_vs.plot(Vs, depth, 'k-',lw=2.0)
+        ax_vs.plot(Vs, depth, 'k-',lw=2.0)
 		
         decorate_plot(ax_pgd)
         ax_pgd.set_xlabel("PGD (m)")
@@ -400,7 +401,7 @@ def plot_profiles_fs_excel():
         decorate_plot(ax_pl)
         ax_pl.set_xlabel("PL")
 		
-		decorate_plot(ax_vs)
+        decorate_plot(ax_vs)
         ax_vs.set_xlabel("Vs")
         
         Vs_test = []
