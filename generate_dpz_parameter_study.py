@@ -598,10 +598,10 @@ def generate_random_velocities(filename, num_cases=40, randomize_layers=[1], cal
                     initial_guess = (layer['t1'],layer['t2'],layer['t3'],layer['t4'],layer['t5'],layer['p1'],layer['p2'],layer['p3'])
                     if ref_curve_list[cur_main_layer-1] == 'Darendeli':
                         t1,t2,t3,t4,t5,p1,p2,p3,D = \
-                            calibrateGQH_Darendeli_LS(p, pi_list[cur_main_layer-1], ocr_list[cur_main_layer-1], layer['strength'], layer['Gmax'], Patm=101.3, initial_guess=initial_guess)
+                            calibrateGQH_Darendeli_LS(p, pi_list[cur_main_layer-1], ocr_list[cur_main_layer-1], layer['strength'], Gmax, Patm=101.3, initial_guess=initial_guess)
                     elif ref_curve_list[cur_main_layer-1] == 'Zhang2005':
                          t1,t2,t3,t4,t5,p1,p2,p3,D = \
-                            calibrateGQH_Zhang2005_LS(p, pi_list[cur_main_layer-1], layer['strength'], layer['Gmax'], Patm=101.3, initial_guess=initial_guess)
+                            calibrateGQH_Zhang2005_LS(p, pi_list[cur_main_layer-1], layer['strength'], Gmax, Patm=101.3, initial_guess=initial_guess)
                     # elif ref_curve_list[cur_main_layer-1] == 'Menq':
                     #     t1, t2, t3, t4, t5, p1, p2, p3, D = calibrateGQH_Menq_LS(p, xl_layer['Cu'], xl_layer['D50'], strength, Gmax, Patm=101.3)
                     # elif ref_curve_list[cur_main_layer-1] == 'VuceticDobry':
