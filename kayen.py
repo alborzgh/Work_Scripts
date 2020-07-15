@@ -18,12 +18,12 @@ def liquefaction_triggering_Kayen(depth, Vs, Vs12=None, csr=None, fc=None, pga=N
         csr = 0.65 * pga * sig_tot / sig_eff * rd
     if dwf is None:
         dwf = 15*Mw**(-1.342)
-    csr = csr/dwf
+    # csr = csr/dwf ### updated based on discussion with JD on July 13th, 2020
     # print("CSR = ", csr)
-    pl_calc = norm.cdf(-((0.0073*Vs1)**2.8011 - 1.946*np.log(csr) - 2.6168*np.log(Mw) - 0.0099*np.log(sig_eff) + 0.0028*fc)/0.4809)
+    pl_calc = norm.cdf(-((0.0073*Vs1)**2.8011 - 1.946*np.log(csr) - 2.6168*np.log(Mw) - 0.0099*np.log(sig_eff) + 0.0028*fc)/0.4809)#,0,1)
     crr = np.exp(((0.0073*Vs1)**2.8011 - 2.6168*np.log(Mw) - 0.0099*np.log(sig_eff) + 0.0028*fc - 0.4809 * norm.ppf(pl))/1.946)
     # print("CRR = ", crr)
-    fs_liq = crr/csr
+    fs_liq = crr/csr*dwf
 
     return fs_liq, pl_calc, csr, crr
 

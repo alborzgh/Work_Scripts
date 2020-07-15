@@ -3,9 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import openpyxl as xl
 
+import sys
+sys.path.insert(1, './Utility_Scripts')
+
 from os_utils import ensure_dir
-from calibrateGQH import calibrateGQH_Darendeli_LS, calibrateGQH_Menq_LS, calibrateGQH_VuceticDobry_LS
-from ModulusReduction import Menq, Darendeli, VuceticDobry
+from calibrateGQH import calibrateGQH_Darendeli_LS, calibrateGQH_Menq_LS, calibrateGQH_VuceticDobry_LS,calibrateGQH_Zhang2005_LS
+from ModulusReduction import Menq, Darendeli, VuceticDobry, Zhang2005
 from GQHModel import GQH_modulusreduction, GQH_damping
 from subprocess import Popen, PIPE
 from multiprocessing import  Process, Pool
@@ -23,6 +26,10 @@ def plot_curve(t1,t2,t3,t4,t5,p1,p2,p3,D, strength, Gmax, model, p=101.3, PI_Cu=
     elif model == 'Menq':
         GGmax, damp, gamma = Menq(p, PI_Cu, OCR_D50, Patm=101.3)
         ax_title = f"Menq: p = {p:.2f}kPa, Cu = {PI_Cu}, D50 = {OCR_D50}"
+    elif model == 'Zhang':
+        GGmax, damp, gamma = Zhang2005(p, PI_Cu, age='Quaternary', Patm=101.3)
+
+        ax_title = f"Zhang2005: p = {p:.2f}kPa, Cu = {PI_Cu}, age='Quaternary'"
     else:
         raise(f"Material model {model} is not implemented!")
 
@@ -145,11 +152,28 @@ def generate_deepsoil_layering(xl_fn, filename):
                         break
                     else:
                         num_sublayers *= 2
+            elif xl_layer['Vs_interp'] == 'PRDP-2020':
+                num_sublayers = 1
+                while True:
+                    depth_test = depth + xl_layer['thickness'] / num_sublayers
+                    # Vs_test = 0.047*depth_test**3.0 - 1.69*depth_test**2.0 + 23.0*depth_test + 115.0
+                    # Vs_test = 0.055*depth_test**3.0 - 1.77*depth_test**2.0 + 21.7*depth_test + 117.0
+                    
+                    # Vs_test = 0.051*depth_test**3.0 - 1.73*depth_test**2.0 + 22.3*depth_test + 116.0
+                    # Vs_test = 0.045*depth_test**3.0 - 1.63*depth_test**2.0 + 22.1*depth_test + 116.0
+                    
+                    # Vs_test = 0.0167*depth_test**3.0 - 0.94*depth_test**2.0 + 17.57*depth_test + 122.0
+                    Vs_test = -0.0006*depth_test**4.0 +0.0507*depth_test**3- 1.5814*depth_test**2.0 + 22.16*depth_test + 116.0
+                    
+                    if Vs_test / (4 * xl_layer['thickness'] / num_sublayers) > xl_layer['max_frequency']:
+                        break
+                    else:
+                        num_sublayers *= 2
             elif xl_layer['Vs_interp'] == 'JD-2018-Fill':
                 num_sublayers = 1
                 while True:
                     depth_test = depth + xl_layer['thickness'] / num_sublayers
-                    Vs_test = 0.018*depth_test**3.0 - 0.89*depth_test**2.0 + 6.2*depth_test + 104.0
+                    Vs_test = 0.018*depth_test**3.0 - 0.89*depth_test**2.0 + 16.2*depth_test + 104.0
                     if Vs_test / (4 * xl_layer['thickness'] / num_sublayers) > xl_layer['max_frequency']:
                         break
                     else:
@@ -181,6 +205,14 @@ def generate_deepsoil_layering(xl_fn, filename):
                     Vs = xl_layer['Vs1'] * (p/101.3)**xl_layer['Vs3']
                 elif xl_layer['Vs_interp'] == 'JD-2018-Fill':
                     Vs = 0.018*depth**3.0 - 0.89*depth**2.0 + 16.2*depth + 104.0
+                elif xl_layer['Vs_interp'] == 'PRDP-2020':
+                    # Vs = 0.047*depth**3.0 - 1.69*depth**2.0 + 23*depth + 115.0
+                    # Vs = 0.055*depth**3.0 - 1.77*depth**2.0 + 21.7*depth + 117.0
+                    
+                    # Vs = 0.051*depth**3.0 - 1.73*depth**2.0 + 22.3*depth + 116.0
+                    # Vs = 0.045*depth**3.0 - 1.63*depth**2.0 + 22.1*depth + 116.0
+                    # Vs = 0.0167*depth**3.0 - 0.94*depth**2.0 + 17.57*depth + 122.0
+                    Vs = -0.0006*depth**4.0 +0.0507*depth**3- 1.5814*depth**2.0 + 22.16*depth + 116.0
                 elif xl_layer['Vs_interp'] == 'JD-2018-SoftClay':
                     Vs = 1.5*depth + 117.5
                 else:
@@ -197,6 +229,11 @@ def generate_deepsoil_layering(xl_fn, filename):
                 elif xl_layer['MR_curve'] == 'VuceticDobry':
                     t1, t2, t3, t4, t5, p1, p2, p3, D = calibrateGQH_VuceticDobry_LS(xl_layer['PI'], strength, Gmax)
                     plot_curve(t1,t2,t3,t4,t5,p1,p2,p3,D,strength, Gmax, 'VuceticDobry', p, 0.0, 0.0, plots_dir + '/' + f'{xl_layer_ii+1}_' + xl_layer['Name'] + '_' + str(layer_ii+1)+'.png')
+                elif xl_layer['MR_curve'] == 'Zhang':
+                    t1,t2,t3,t4,t5,p1,p2,p3,D = \
+                            calibrateGQH_Zhang2005_LS(p, xl_layer['PI'], strength, Gmax, Patm=101.3)
+                    
+                    plot_curve(t1,t2,t3,t4,t5,p1,p2,p3,D,strength, Gmax, 'Zhang', p, 0.0, 0.0, plots_dir + '/' + f'{xl_layer_ii+1}_' + xl_layer['Name'] + '_' + str(layer_ii+1)+'.png')
                 else:
                     raise('Modulus Reduction curve ' +  xl_layer['MR_curve'] + ' not implemented.')
                 
@@ -244,6 +281,17 @@ def generate_deepsoil_layering(xl_fn, filename):
                 Vs =0.5 * (xl_layer['Vs2']+xl_layer['Vs1'])
             elif xl_layer['Vs_interp'] == 'Stress-Dependent':
                 Vs = xl_layer['Vs1'] * (p/101.3)**xl_layer['Vs3']
+            elif xl_layer['Vs_interp'] == 'PRDP-2020':
+                # Vs = 0.047*depth**3.0 - 1.69*depth**2.0 + 23*depth + 115.0
+                # Vs = 0.055*depth**3.0 - 1.77*depth**2.0 + 21.7*depth + 117.0
+                
+                # Vs = 0.051*depth**3.0 - 1.73*depth**2.0 + 22.3*depth + 116.0
+                # Vs = 0.045*depth**3.0 - 1.63*depth**2.0 + 22.1*depth + 116.0
+                
+                # Vs = 0.0167*depth**3.0 - 0.94*depth**2.0 + 17.57*depth + 122.0
+                
+                Vs = -0.0006*depth**4.0 +0.0507*depth**3- 1.5814*depth**2.0 + 22.16*depth + 116.0
+                 
             elif xl_layer['Vs_interp'] == 'JD-2018-Fill':
                 Vs = 0.018*depth**3.0 - 0.89*depth**2.0 + 16.2*depth + 104.0
             elif xl_layer['Vs_interp'] == 'JD-2018-SoftClay':
@@ -262,6 +310,11 @@ def generate_deepsoil_layering(xl_fn, filename):
             elif xl_layer['MR_curve'] == 'VuceticDobry':
                 t1, t2, t3, t4, t5, p1, p2, p3, D = calibrateGQH_VuceticDobry_LS(xl_layer['PI'], strength, Gmax)
                 plot_curve(t1,t2,t3,t4,t5,p1,p2,p3,D,strength, Gmax, 'VuceticDobry', p, 0.0, 0.0, plots_dir + '/' + f'{xl_layer_ii+1}_' + xl_layer['Name']+'.png')
+            elif xl_layer['MR_curve'] == 'Zhang':
+                t1,t2,t3,t4,t5,p1,p2,p3,D = \
+                            calibrateGQH_Zhang2005_LS(p, xl_layer['PI'], strength, Gmax, Patm=101.3)
+                    
+                plot_curve(t1,t2,t3,t4,t5,p1,p2,p3,D,strength, Gmax, 'Zhang', p, 0.0, 0.0, plots_dir + '/' + f'{xl_layer_ii+1}_' + xl_layer['Name'] + '_' + str(layer_ii+1)+'.png')
             else:
                 raise('Modulus Reduction curve ' +  xl_layer['MR_curve'] + ' not implemented.')
             
@@ -393,16 +446,27 @@ def generate_one_profile(profile_name):
 
 def parallel_generate():
     profiles = [
-        "Bhb-17-Simplified_new",
-        "Bhd-01-Simplified_new",
-        "Bhr-01-Simplified_new",
-        "Bhr-04-Simplified_new"
+        
+        "../Bhr-04/Bhr-04-Darendeli_soft1",
+        # "../Bhr-04/Bhr-04-Darendeli_soft2",
+        "../Bhr-04/Bhr-04-Darendeli_soft3",
+        "../Bhr-04/Bhr-04-Zhang_soft1",
+        # "../Bhr-04/Bhr-04-Zhang_soft2",
+        "../Bhr-04/Bhr-04-Zhang_soft3",
+        
+        # "../Bhd-01/Bhd-01-Darendeli_soft2",
+        # "../Bhd-01/Bhd-01-Zhang_soft2",
+        
+        # "../Bhr-01/Bhr-01-Darendeli_soft2",
+        # "../Bhr-01/Bhr-01-Zhang_soft2",
+        
+        # "../Bhb-17/Bhb-17-Darendeli_soft2",
+        # "../Bhb-17/Bhb-17-Zhang_soft2",
         # 'DS_Template'
     ]
     with Pool(8) as pool:
             pool.map(generate_one_profile, profiles)
 
-
 if __name__ == "__main__":
-    generate_one_profile('Bhd-01-Simplified_new')
-    # parallel_generate()
+    # generate_one_profile('Bhd-01-Simplified_new')
+    parallel_generate()
